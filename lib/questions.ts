@@ -23,6 +23,8 @@ export interface Question {
   /** Free-text check for typed answers. */
   accepts?: (input: string) => boolean;
   typed?: boolean;
+  /** True when the question itself was written by the model. */
+  aiGenerated?: boolean;
 }
 
 export interface QuestionContext {
@@ -310,6 +312,28 @@ export function buildQuestion(ctx: QuestionContext, type: QuestionType = chooseQ
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Turn a model-generated quiz into the shape the study UI renders. */
+export function questionFromQuiz(
+  quiz: { questionType: string; prompt: string; options: string[]; answerIndex: number; explanation: string },
+  base: Question,
+): Question {
+  const index = Math.min(Math.max(quiz.answerIndex, 0), Math.max(quiz.options.length - 1, 0));
+  return {
+    ...base,
+    type: 'multiple-choice',
+    prompt: quiz.prompt,
+    front: base.front,
+    answer: quiz.options[index] ?? base.answer,
+    answerLabel: 'Answer',
+    choices: quiz.options,
+    correctIndex: index,
+    stages: quiz.explanation
+      ? [{ label: 'Why', kind: 'extra', lines: [quiz.explanation] }, ...base.stages]
+      : base.stages,
+    aiGenerated: true,
+  };
 }
 
 export const QUESTION_LABELS: Record<QuestionType, string> = {

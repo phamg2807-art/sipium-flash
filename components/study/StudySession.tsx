@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Curiosity, Flashcard, QuestionType, Rating, StudyState } from '@/shared/types';
 import { api } from '@/lib/api';
-import { buildQuestion, chooseQuestionType, type Question } from '@/lib/questions';
+import { buildQuestion, chooseQuestionType, questionFromQuiz, type Question } from '@/lib/questions';
 import { orderQueue } from '@/lib/study-store';
 import { useSettings } from '@/lib/settings';
 import { Button, Chip, Stat } from '@/components/ui/Primitives';
@@ -19,6 +19,9 @@ const FEEDBACK: Record<Rating, string[]> = {
   good: ['Nice recall.', 'That one is sticking.', 'Good — steady progress.'],
   easy: ['Exactly.', 'Instant recall.', 'Locked in.'],
 };
+
+/** How often the model writes the question instead of the local engine. */
+const AI_CHALLENGE_EVERY = 6;
 
 const GRADE_HINTS: Record<Rating, string> = {
   again: 'forgot',
@@ -141,7 +144,23 @@ export function StudySession({
     setVerdict(null);
     setCuriosity(null);
     startedAt.current = Date.now();
-  }, [card, cards, states, settings.study.questionMix, settings.study.showPronunciation, variant]);
+
+    // Every few cards the model writes the question itself. It is a bonus: if
+    // the request fails or no key is configured, the local question stays.
+    if ((index + 1) % AI_CHALLENGE_EVERY === 0) {
+      let cancelled = false;
+      void api
+        .cardAction({ card, action: 'quiz', context: {} })
+        .then((result) => {
+          if (cancelled || !result.quiz) return;
+          setQuestion((current) => (current ? questionFromQuiz(result.quiz!, current) : current));
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [card, cards, states, settings.study.questionMix, settings.study.showPronunciation, variant, index]);
 
   const curiosityEvery = settings.study.curiosity === 'often' ? 3 : settings.study.curiosity === 'sometimes' ? 5 : 0;
 
@@ -414,7 +433,11 @@ export function StudySession({
         <span className="muted" style={{ fontSize: 12.5 }}>
           {deckTitle}
         </span>
-        <Chip>{QUESTION_LABELS[question.type]}</Chip>
+        {question.aiGenerated ? (
+          <Chip tone="accent">AI challenge</Chip>
+        ) : (
+          <Chip>{QUESTION_LABELS[question.type]}</Chip>
+        )}
         <div className="study__progress">
           <div className="study__progress-fill" style={{ width: `${((index + 1) / Math.max(queue.length, 1)) * 100}%` }} />
         </div>
