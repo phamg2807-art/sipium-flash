@@ -1,0 +1,39 @@
+{
+  "name": "sipium-flash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sipium Flash — AI-powered flashcard creation and English learning platform for Vietnamese learners.",
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "next dev -H 0.0.0.0 -p 3000",
+    "dev:api": "tsx watch --clear-screen=false server/src/index.ts",
+    "build": "next build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start": "concurrently -n web,api -c cyan,magenta \"next start -H 0.0.0.0 -p 3000\" \"node server/dist/index.js\"",
+    "start:api": "node server/dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "db:migrate": "tsx server/src/db/migrate-cli.ts",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "next": "^15.5.25",
+    "pg": "^8.23.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/node": "^22.20.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "concurrently": "^9.2.4",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  }
+}
