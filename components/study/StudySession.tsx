@@ -253,6 +253,13 @@ export function StudySession({
         }
         return;
       }
+      if (['1', '2', '3', '4'].includes(event.key) && revealedStage > 0) {
+        event.preventDefault();
+        const ratings: Rating[] = ['again', 'hard', 'good', 'easy'];
+        const rating = ratings[Number(event.key) - 1];
+        if (rating) grade(rating, rating !== 'again');
+        return;
+      }
       if (event.key === ' ' || event.key === 'Enter') {
         event.preventDefault();
         if (revealedStage === 0) reveal();
@@ -261,7 +268,7 @@ export function StudySession({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [started, finished, verdict, next, reveal, advanceStage, revealedStage, question, onExit]);
+  }, [started, finished, verdict, next, reveal, advanceStage, revealedStage, question, onExit, grade]);
 
   /* -------------------------------- render -------------------------------- */
 
@@ -482,7 +489,7 @@ export function StudySession({
                   key={rating}
                   type="button"
                   className={`grade grade--${rating}`}
-                  onClick={() => grade(rating, rating === 'again' ? false : rating === 'hard' ? true : true)}
+                  onClick={() => grade(rating, rating !== 'again')}
                 >
                   <span style={{ textTransform: 'capitalize' }}>{rating}</span>
                   <span className="grade__hint">{GRADE_HINTS[rating]}</span>
